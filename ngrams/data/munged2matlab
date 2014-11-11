@@ -1,0 +1,48 @@
+use warnings;
+use strict;
+
+sub dict_lookup($$)
+{
+  my ($term, $dict) = @_;
+
+  $term = lc $term;
+
+  do { my $nd = scalar keys %$dict; 
+       $dict->{$term} = ++$nd; } 
+  unless exists $dict->{$term};
+
+  return $dict->{$term};
+}
+
+# cat ... | perl ./munged2matlab 3>left 4>right 5>weight 6>dict
+# $1	million	per	year	and	57
+
+open (LEFT, '>&=3');
+open (RIGHT, '>&=4');
+open (WEIGHT, '>&=5');
+open (DICT, '>&=6');
+
+my %dict_l;
+my %dict;
+
+while (defined ($_ = <>))
+{
+  chomp;
+  my @rest = split /\t/, $_;
+  my $cnt = pop @rest;
+  my $m = splice @rest, 2, 1;
+  foreach my $d (map { dict_lookup("$_:$rest[$_]",\%dict_l) } (0 .. $#rest))
+  {
+    print LEFT "$. $d 1\n";
+  }
+        
+  print RIGHT "$. @{[dict_lookup($m,\%dict)]} 1\n";
+  print WEIGHT "1 $. $cnt\n";
+}
+
+my %invdict = map { $dict{$_} => $_ } keys %dict;
+
+foreach (1 .. scalar keys %invdict)
+{
+  print DICT "$_\t$invdict{$_}\n";
+}
