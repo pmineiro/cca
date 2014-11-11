@@ -1,10 +1,14 @@
 .SECONDARY:
 
-all: ccaembed.txt
+all: ccaembed.txt.gz
+
+data/dict:
+	@echo "*** ERROR: you need to run make in the data/ directory ***" 1>&2
+	@exit 1
 
 megaproj.txt: data/dict
-	echo "*** you need to run makeccangrams.m ***" 1>&2
-	exit 1
+	@echo "*** ERROR: you need to run makeccangrams.m ***" 1>&2
+	@exit 1
 
 ccaembed.txt.gz: megaproj.txt
 	paste data/dict megaproj.txt | cut -f2- | gzip > $@
