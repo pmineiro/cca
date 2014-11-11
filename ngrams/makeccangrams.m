@@ -34,6 +34,6 @@ tic
 [d,~]=size(right);
 megaproj=bsxfun(@times,cca.projecty(speye(d)),sqrt(cca.sigma));
 megaprojnorm=arrayfun(@(z) norm(megaproj(z,:)), 1:size(megaproj,1));
-megaproj=bsxfun(@rdivide,megaproj,megaprojnorm');
-save('megaproj.txt','-ascii','megaproj');
+megaproj=single(bsxfun(@rdivide,megaproj,megaprojnorm'));
+save('megaproj.mat','-v7.3','megaproj');
 toc

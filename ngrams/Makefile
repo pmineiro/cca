@@ -6,17 +6,14 @@ data/dict:
 	@echo "*** ERROR: you need to run make in the data/ directory ***" 1>&2
 	@exit 1
 
-megaproj.txt: data/dict
+megaproj.mat: data/dict
 	@echo "*** ERROR: you need to run makeccangrams.m ***" 1>&2
 	@exit 1
 
-ccaembed.txt.gz: megaproj.txt
-	paste data/dict megaproj.txt | cut -f2- | gzip > $@
-
 .PHONY: tensetest ultimatetest
 
-test.%: ccaembed.txt.gz
-	echo $* | perl -pe 's/_/ /g;' | while read a b c d; do echo "$$a $$a $$a\n$$b $$b $$b\n$$c $$c $$c\n$$d $$d $$d\n$$a $$b $$c\n" | python ./neighbors.py $< 200; done
+test.%: megaproj.mat
+	echo $* | perl -pe 's/_/ /g;' | while read a b c d; do echo "$$a $$a $$a\n$$b $$b $$b\n$$c $$c $$c\n$$d $$d $$d\n$$a $$b $$c\n" | python ./neighbors.py $< data/dict 200; done
 
 ultimatetest: test.king_queen_man_woman
 

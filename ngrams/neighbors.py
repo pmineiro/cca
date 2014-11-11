@@ -1,22 +1,28 @@
 from sys import argv,stdin
 from bisect import bisect
-import gzip
+import numpy as np, h5py
+
+def norm(x):
+    return np.inner(x,x)
 
 def dist(x,y):
-    return sum((xi-yi)**2 for xi,yi in zip(x,y))
+    return norm(x-y)
 
-def nn(q,d):
-    dists=[(dist(d[w],q),w) for w in d]
+def nn(q,d,v):
+    dists=[(dist(v[:,d[w]],q),w) for w in d]
     dists.sort()
     return dists[:5]
 
-f=gzip.open(argv[1], 'rb')
-k=int(argv[2])
+f=h5py.File(argv[1],'r');
+data=f.get('megaproj');
+data=np.array(data);
+words=open(argv[2],'r');
+k=int(argv[3])
 eigendict=dict()
-for line in f:
+for line in words:
     parts=line.strip().split()
-    word=parts[0]
-    eigendict[word]=map(float,parts[1:k])
+    word=parts[1]
+    eigendict[word]=int(parts[0])-1
 f.close()
 
 vocab=eigendict.keys()
@@ -36,12 +42,12 @@ def main():
         if w3 not in eigendict:
             print "%s not found"%w3
             continue
-        query=[z+y-x for (x,y,z) in zip(eigendict[w1],eigendict[w2],eigendict[w3])]
+        query=data[:,eigendict[w3]]+data[:,eigendict[w2]]-data[:,eigendict[w1]];
         if w1 == w2 and w2 == w3:
             print 'nearest neighbors of %s are ...'%(w1)
         else:
             print '%s is to %s as %s is to ...'%(w1,w2,w3)
-        print nn(query,eigendict)
+        print nn(query,eigendict,data)
         line=raw_input()
 
 if __name__=='__main__':
