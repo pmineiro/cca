@@ -28,9 +28,7 @@ toc
 
 tic
 cca=alscca(left,sqrt(weight),right,200,...
-           struct('init','rcca',...
-                  'rccaopts',struct('bs',5e+6),...
-                  'tmax',10,'verbose',true,'bs',1e+7,'innerloop',4));
+           struct('tmax',10,'verbose',true,'bs',1e+7,'innerloop',4));
 toc
 tic
 [d,~]=size(right);
