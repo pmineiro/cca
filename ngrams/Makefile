@@ -1,6 +1,6 @@
 .SECONDARY:
 
-all: ccaembed.txt.gz
+all: ultimatetest tensetest
 
 data/dict:
 	@echo "*** ERROR: you need to run make in the data/ directory ***" 1>&2
