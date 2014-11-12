@@ -14,8 +14,8 @@ ngram data from Google (http://storage.googleapis.com/books/ngrams/books/dataset
 
 embeddings exhibit ``linear semantics'', e.g.,
 
-  * man + queen - king $\approx$ woman
-  * go + walked - walk $\approx$ went
-  * paris + germany - berlin $\approx$ france
-  * poland + german - germany $\approx$ polish
-  * bigger + small - big $\approx$ smaller
+  * man + queen - king -> woman
+  * go + walked - walk -> went
+  * paris + germany - berlin -> france
+  * poland + german - germany -> polish
+  * bigger + small - big -> smaller
