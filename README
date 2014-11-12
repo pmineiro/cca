@@ -1,7 +1,9 @@
+  * txt2mat.m: by Andres (http://www.mathworks.com/matlabcentral/fileexchange/18430-txt2mat)
   * rcca.m: matlab implementation of randomized CCA
   * alscca.m: matlab implementation of alterating least squares CCA
   * dmsm.cpp: compile this MEX to make the previous functions go faster
        (multicore dense-sparse matrix multiply)
   * sparsequad.cpp: compile this MEX to make the previous functions go faster
        (multicore sparse quadratic form)
+  * europarl/: europarl multilingual word embedding demo
   * ngrams/: google n-grams word embedding demo

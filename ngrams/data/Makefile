@@ -6,11 +6,15 @@ ngramfiles=$(foreach n,$(numbers),$(prefix)-$(n).csv.zip)
 mungedngramfiles=$(patsubst %.csv.zip,%.munged.zip,$(ngramfiles))
 
 all: 
-	@echo "*** WARNING: this downloads lots of stuff ***" 1>&2
-	@echo "*** WARNING: it takes about 50G of disk ***" 1>&2
-	@echo "*** WARNING: and many hours ***" 1>&2
-	@echo "" 1>&2
-	@echo "if you are sure, type 'make -j4 gocrazy'"
+	@test -s left -a -s right -a -s weight -a -s dict || {		\
+	  echo "*** WARNING: this downloads lots of stuff ***" 1>&2;	\
+	  echo "*** WARNING: it takes about 50G of disk ***" 1>&2;	\
+	  echo "*** WARNING: and many hours ***" 1>&2;			\
+	  echo "" 1>&2;							\
+	  echo "if you are sure, type 'make -j4 gocrazy'" 1>&2;		\
+	  exit 0;							\
+	};								\
+	echo "nothing to do here, cd .. and consult README" 1>&2
 
 clean:
 	@echo "*** WARNING: this deletes lots of stuff ***" 1>&2

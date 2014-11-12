@@ -40,6 +40,9 @@ function retval = rcca(Ltic, W, Rtic, k, varargin)
 %   opts.compress: detect and ignore unused features.  default is false.
 %                  when using hashing to generate features, this can save
 %                  substantial memory.
+%   opts.kbs: column block size for MEX-accelerated matrix operations.
+%             smaller block sizes save memory but run slower.  default
+%             block size is number of latent dimensions.
 %   opts.bs: example block size for matrix operations.  smaller 
 %            block sizes save memory but run slower.  default block
 %            size is number of examples.
@@ -61,7 +64,7 @@ function retval = rcca(Ltic, W, Rtic, k, varargin)
     end
 
     k=min([dl;dr;k]);
-    [lambda,p,tmax,bs,compress]=parseArgs(nw,k,varargin{:});
+    [lambda,p,tmax,bs,kbs,compress]=parseArgs(nw,k,varargin{:});
 
     if (compress)
       usedL=find(any(Ltic,2));
@@ -90,10 +93,10 @@ function retval = rcca(Ltic, W, Rtic, k, varargin)
     cl=lambda*sum(dLL)/dl;
     cr=lambda*sum(dRR)/dr;
     
-    LticR=@(Z) LticRimpl(Z,bs,Ltic,mL,Rtic,mR,W,sumw,havemex);
-    RticL=@(Z) LticRimpl(Z,bs,Rtic,mR,Ltic,mL,W,sumw,havemex);
-    LticL=@(Z) LticRimpl(Z,bs,Ltic,mL,Ltic,mL,W,sumw,havemex);
-    RticR=@(Z) LticRimpl(Z,bs,Rtic,mR,Rtic,mR,W,sumw,havemex);
+    LticR=@(Z) LticRimpl(Z,bs,kbs,Ltic,mL,Rtic,mR,W,sumw,havemex);
+    RticL=@(Z) LticRimpl(Z,bs,kbs,Rtic,mR,Ltic,mL,W,sumw,havemex);
+    LticL=@(Z) LticRimpl(Z,bs,kbs,Ltic,mL,Ltic,mL,W,sumw,havemex);
+    RticR=@(Z) LticRimpl(Z,bs,kbs,Rtic,mR,Rtic,mR,W,sumw,havemex);
 
     % 1. randomized top range finder for L'*diag(W)*R
     QL=randn(kp,dl);
@@ -145,7 +148,7 @@ function retval = rcca(Ltic, W, Rtic, k, varargin)
     end
 end
 
-function [lambda,p,tmax,bs,compress] = parseArgs(n,k,varargin)
+function [lambda,p,tmax,bs,kbs,compress] = parseArgs(n,k,varargin)
   lambda=1;
   if (nargin == 3 && isfield(varargin{1},'lambda'))
     lambda=varargin{1}.lambda;
@@ -162,19 +165,30 @@ function [lambda,p,tmax,bs,compress] = parseArgs(n,k,varargin)
   if (nargin == 3 && isfield(varargin{1},'bs'))
     bs=varargin{1}.bs;
   end
+  kbs=k+p;
+  if (nargin == 3 && isfield(varargin{1},'kbs'))
+    kbs=varargin{1}.kbs;
+  end
   compress=false;
   if (nargin == 3 && isfield(varargin{1},'compress'))
     compress=varargin{1}.compress;
   end
 end
 
-function Y = LticRimpl(Z,bs,Ltic,mL,Rtic,mR,W,sumw,havemex)
+function Y = LticRimpl(Z,bs,kbs,Ltic,mL,Rtic,mR,W,sumw,havemex)
   [~,n]=size(Ltic);
   [k,~]=size(Z);
   Y=-sumw*((Z*mR')*mL);
   if (bs >= n)
     if havemex && issparse(Rtic) && issparse(Ltic)
-      Y=Y+sparsequad(Ltic,W,Rtic,Z);
+      if (kbs >= k)
+        Y=Y+sparsequad(Ltic,W,Rtic,Z);
+      else
+        for koff=1:kbs:k
+          koffend=min(k,koff+kbs-1);
+          Y(koff:koffend,:)=Y(koff:koffend,:)+sparsequad(Ltic,W,Rtic,Z(koff:koffend,:));
+        end
+      end
     elseif havemex && issparse(Rtic)      
       Y=Y+dmsm(Z,Rtic,W)*Ltic';
     elseif havemex && issparse(Ltic)
@@ -184,7 +198,14 @@ function Y = LticRimpl(Z,bs,Ltic,mL,Rtic,mR,W,sumw,havemex)
     end
   else
     if havemex && issparse(Rtic) && issparse(Ltic)
-      Y=Y+sparsequad(Ltic,W,Rtic,Z);
+      if (kbs >= k)
+        Y=Y+sparsequad(Ltic,W,Rtic,Z,kbs);
+      else
+        for koff=1:kbs:k
+          koffend=min(k,koff+kbs-1);
+          Y(koff:koffend,:)=Y(koff:koffend,:)+sparsequad(Ltic,W,Rtic,Z(koff:koffend,:));
+        end
+      end       
     elseif havemex && issparse(Rtic)      
       for off=1:bs:n
         offend=min(n,off+bs-1);

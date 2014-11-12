@@ -1,0 +1,58 @@
+#! /usr/bin/env perl
+
+use warnings;
+use strict;
+
+use B;
+use Encode qw(_utf8_on _utf8_off);
+
+my $n_bits = 19;
+my $n_hash = (1 << $n_bits);
+
+binmode STDIN, ':encoding(utf8)';
+
+sub hashit ($)
+{
+  my $hv = hex (B::hash ($_[0]));
+  my $sign = ($hv % 2) ? 1 : -1;
+  $hv >>= 1;
+  my $d = $hv % (1 << $n_bits);
+
+  return [ 1+$d, $sign ];
+}
+
+sub preprocess ($)
+{
+  my ($s) = @_;
+
+  _utf8_on ($s);
+  $s = lc $s;
+  $s =~ s/^\p{Punct}+//g; 
+  $s =~ s/\p{Punct}+$//g;
+  _utf8_off ($s);
+  return $s;
+}
+
+# ./europarl2matsparse europarl-v7.el-en.el
+
+print "1 $n_hash 0\n";
+
+while (defined ($_ = <>))
+  {
+    chomp;
+    my @tokens = grep { length } map { preprocess ($_) } split /\s+/, $_;
+    next unless @tokens;
+
+    my %tc;
+    foreach my $t (@tokens)
+      {
+        ++$tc{$t};
+      }
+
+    while (my ($k, $v) = each %tc)
+      {
+        my $lt = hashit ($k);
+        my $logv = log (1 + $v) / log (2);
+        print "$. $lt->[0] @{[$lt->[1]*$logv]}\n";
+      }
+  }

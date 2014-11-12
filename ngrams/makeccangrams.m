@@ -2,7 +2,7 @@ clear all;
 close all;
 more off;
 
-addpath('../');
+addpath('..');
 prefix='data/';
 
 randn('seed',8675309);
