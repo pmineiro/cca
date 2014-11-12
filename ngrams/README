@@ -1,3 +1,13 @@
 txt2mat.m from Andres (http://www.mathworks.com/matlabcentral/fileexchange/18430-txt2mat)
 
 ngram data from Google (http://storage.googleapis.com/books/ngrams/books/datasetsv2.html), version 20090715, American English
+
+=== How to run the demo ===
+
+1. cd data/; make
+   -> downloads google n-grams and pre-processes, takes many hours
+2. make sure you have compiled dmsm.cpp and sparsequad.cpp in parent directory
+3. open matlab and run makeccangrams.m
+   -> takes about 90 minutes and roughly 32 gigabytes of memory
+4. embeddings are stored in megaproj.mat
+5. query embeddings using the neighbors.py tool.  see examples in Makefile

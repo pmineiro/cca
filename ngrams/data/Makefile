@@ -10,7 +10,7 @@ all:
 	@echo "*** WARNING: it takes about 50G of disk ***" 1>&2
 	@echo "*** WARNING: and many hours ***" 1>&2
 	@echo "" 1>&2
-	@echo "if you are sure, type 'make -j2 gocrazy'"
+	@echo "if you are sure, type 'make -j4 gocrazy'"
 
 clean:
 	@echo "*** WARNING: this deletes lots of stuff ***" 1>&2

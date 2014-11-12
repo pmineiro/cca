@@ -44,11 +44,11 @@ function retval = rcca(Ltic, W, Rtic, k, varargin)
 %            block sizes save memory but run slower.  default block
 %            size is number of examples.
 
-    if exist('dmsm','file') == 3
+    if exist('sparsequad','file') == 3 && exist('dmsm','file') == 3
       havemex=true;
     else
       havemex=false;
-      warning('rcca:nomex', 'MEX acceleration not available, have you compiled the mex?');
+      warning('alscca:nomex', 'MEX acceleration not available, have you compiled the mex?');
     end
 
     [dl,nl]=size(Ltic);
@@ -174,9 +174,9 @@ function Y = LticRimpl(Z,bs,Ltic,mL,Rtic,mR,W,sumw,havemex)
   Y=-sumw*((Z*mR')*mL);
   if (bs >= n)
     if havemex && issparse(Rtic) && issparse(Ltic)
-      Y=Y+dmsm(bsxfun(@times,dmsm(Z,Rtic),W),Ltic');
+      Y=Y+sparsequad(Ltic,W,Rtic,Z);
     elseif havemex && issparse(Rtic)      
-      Y=Y+bsxfun(@times,dmsm(Z,Rtic),W)*Ltic';
+      Y=Y+dmsm(Z,Rtic,W)*Ltic';
     elseif havemex && issparse(Ltic)
       Y=Y+dmsm(bsxfun(@times,Z*Rtic,W),Ltic');
     else
@@ -184,14 +184,11 @@ function Y = LticRimpl(Z,bs,Ltic,mL,Rtic,mR,W,sumw,havemex)
     end
   else
     if havemex && issparse(Rtic) && issparse(Ltic)
-      for off=1:bs:n
-        offend=min(n,off+bs-1);
-        Y=Y+dmsm(bsxfun(@times,dmsm(Z,Rtic(:,off:offend)),W(off:offend)),Ltic(:,off:offend)');
-      end
+      Y=Y+sparsequad(Ltic,W,Rtic,Z);
     elseif havemex && issparse(Rtic)      
       for off=1:bs:n
         offend=min(n,off+bs-1);
-        Y=Y+bsxfun(@times,dmsm(Z,Rtic(:,off:offend)),W(off:offend))*Ltic(:,off:offend)';
+        Y=Y+dmsm(Z,Rtic,W,off,offend)*Ltic(:,off:offend)';
       end
     elseif havemex && issparse(Ltic)
       for off=1:bs:n

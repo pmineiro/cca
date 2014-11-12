@@ -2,4 +2,6 @@
   * alscca.m: matlab implementation of alterating least squares CCA
   * dmsm.cpp: compile this MEX to make the previous functions go faster
        (multicore dense-sparse matrix multiply)
+  * sparsequad.cpp: compile this MEX to make the previous functions go faster
+       (multicore sparse quadratic form)
   * ngrams/: google n-grams word embedding demo

@@ -10,7 +10,7 @@
  * 
  * == windows ==
  * 
- * mex OPTIMFLAGS="/Ox" -largeArrayDims -DNUM_THREADS=4 dmsm.cpp
+ * mex OPTIMFLAGS="/O2" -largeArrayDims -DNUM_THREADS=4 dmsm.cpp
  * 
  * == linux ==
  * 
@@ -20,11 +20,14 @@
 
 #define DENSE_MATRIX_PARAMETER_IN     prhs[0]
 #define SPARSE_MATRIX_PARAMETER_IN    prhs[1]
+#define DIAG_VECTOR_PARAMETER_IN      prhs[2]
+#define START_PARAMETER_IN            prhs[3]
+#define END_PARAMETER_IN              prhs[4]
 
 // X = D*S => X' = S'*D'
 
 static void
-sparsetic_times_densetic (const mxArray* prhs[], mxArray* plhs[], size_t start, size_t end)
+sparsetic_times_densetic (int nrhs, const mxArray* prhs[], mxArray* plhs[], size_t start, size_t end)
 {
   mwIndex* ir = mxGetIr(SPARSE_MATRIX_PARAMETER_IN);       /* Row indexing      */
   mwIndex* jc = mxGetJc(SPARSE_MATRIX_PARAMETER_IN);       /* Column count      */
@@ -34,14 +37,38 @@ sparsetic_times_densetic (const mxArray* prhs[], mxArray* plhs[], size_t start, 
   double* Xtic = mxGetPr(plhs[0]);
   mwSize Xcol = mxGetM(plhs[0]);        
 
-  for (size_t i=start; i<end; ++i) {            /* Loop through rows of A (and X) */
-    mwIndex stop = jc[i+1];
-    for (mwIndex k=jc[i]; k<stop; ++k) {        /* Loop through non-zeros in ith row of A */
-      double sk = s[k];
-      double* Bticrow = Btic + ir[k] * Bcol;
-      double* Xticrow = Xtic + i * Xcol;
-      for (mwSize j=0; j<Xcol; ++j) {
-        *Xticrow++ += sk * *Bticrow++;
+  size_t off = 0;
+
+  if (nrhs > 3) {
+    off = mxGetScalar(START_PARAMETER_IN) - 1;
+  }
+
+  if (nrhs == 2) {
+    for (size_t i=start; i<end; ++i) {            /* Loop through rows of A (and X) */
+      mwIndex stop = jc[off+i+1];
+      for (mwIndex k=jc[off+i]; k<stop; ++k) {    /* Loop through non-zeros in ith row of A */
+        double sk = s[k];
+        double* Bticrow = Btic + ir[k] * Bcol;
+        double* Xticrow = Xtic + i * Xcol;
+        for (mwSize j=0; j<Xcol; ++j) {
+          Xticrow[j] += sk * Bticrow[j];
+        }
+      }
+    }
+  }
+  else {
+    double* w = mxGetPr(DIAG_VECTOR_PARAMETER_IN);
+
+    for (size_t i=start; i<end; ++i) {            /* Loop through rows of A (and X) */
+      double wi = w[off+i];
+      mwIndex stop = jc[off+i+1];
+      for (mwIndex k=jc[off+i]; k<stop; ++k) {        /* Loop through non-zeros in ith row of A */
+        double sk = wi * s[k];
+        double* Bticrow = Btic + ir[k] * Bcol;
+        double* Xticrow = Xtic + i * Xcol;
+        for (mwSize j=0; j<Xcol; ++j) {
+          Xticrow[j] += sk * Bticrow[j];
+        }
       }
     }
   }
@@ -57,6 +84,36 @@ void mexFunction( int nlhs, mxArray *plhs[],
   }
 
   switch (nrhs) {
+    case 5:
+      if (mxGetM(END_PARAMETER_IN) != 1 || mxGetN(END_PARAMETER_IN) != 1) {
+        mexErrMsgTxt("End must be a scalar. Fail.");
+        return;
+      }
+
+      // fall through
+
+    case 4:
+      if (mxGetM(START_PARAMETER_IN) != 1 || mxGetN(START_PARAMETER_IN) != 1) {
+        mexErrMsgTxt("Start must be a scalar. Fail.");
+        return;
+      }
+
+      // fall through
+
+    case 3:
+      if (mxIsSparse(DIAG_VECTOR_PARAMETER_IN)) {
+        mexErrMsgTxt("Scale must be dense. Fail.");
+        return;
+      }
+
+      if (mxGetM(DIAG_VECTOR_PARAMETER_IN) != 1 ||
+          mxGetN(DIAG_VECTOR_PARAMETER_IN) != mxGetN(SPARSE_MATRIX_PARAMETER_IN)) {
+        mexErrMsgTxt("Scale has incompatible shape. Fail.");
+        return;
+      }
+
+      // fall through
+
     case 2:
       if (! mxIsSparse(SPARSE_MATRIX_PARAMETER_IN) || mxIsSparse(DENSE_MATRIX_PARAMETER_IN)) {
         mexErrMsgTxt("Require one sparse and one dense argument. Fail.");
@@ -77,16 +134,45 @@ void mexFunction( int nlhs, mxArray *plhs[],
   size_t Bcol = mxGetM(DENSE_MATRIX_PARAMETER_IN);
 
   size_t Arow = mxGetN(SPARSE_MATRIX_PARAMETER_IN);
+  size_t start = 1;
+  size_t end = Arow;
 
-  plhs[0] = mxCreateDoubleMatrix(Bcol, Arow, mxREAL);
+  switch (nrhs)
+    {
+      case 5:
+        end = mxGetScalar(END_PARAMETER_IN);
+
+        if (end > Arow) {
+          mexErrMsgTxt("End is invalid.  Fail.");
+          return;
+        }
+
+        // fall through
+      case 4:
+        start = mxGetScalar(START_PARAMETER_IN);
+
+        if (start < 1) {
+          mexErrMsgTxt("Start is invalid.  Fail.");
+          return;
+        }
+
+        break;
+
+      default:
+        break;
+    }
+
+
+  plhs[0] = mxCreateDoubleMatrix(Bcol, 1+end-start, mxREAL);
 
   double* Xtic = mxGetPr(plhs[0]);
 
   std::thread t[NUM_THREADS];
-  size_t quot = Arow/NUM_THREADS;
+  size_t quot = (1+end-start)/NUM_THREADS;
 
   for (size_t i = 0; i + 1 < NUM_THREADS; ++i) {
     t[i] = std::thread(sparsetic_times_densetic,
+                       nrhs,
                        prhs,
                        plhs,
                        i * quot,
@@ -94,7 +180,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
 
   }
 
-  sparsetic_times_densetic (prhs, plhs, (NUM_THREADS - 1) * quot, Arow);
+  sparsetic_times_densetic (nrhs, prhs, plhs, (NUM_THREADS - 1) * quot, 1 + end - start);
 
   for (int i = 0; i + 1 < NUM_THREADS; ++i) {
     t[i].join ();
