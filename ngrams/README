@@ -11,3 +11,11 @@ ngram data from Google (http://storage.googleapis.com/books/ngrams/books/dataset
    -> takes about 90 minutes and roughly 32 gigabytes of memory
 4. embeddings are stored in megaproj.mat
 5. query embeddings using the neighbors.py tool.  see examples in Makefile
+
+embeddings exhibit ``linear semantics'', e.g.,
+
+  * man + queen - king $\approx$ woman
+  * go + walked - walk $\approx$ went
+  * paris + germany - berlin $\approx$ france
+  * poland + german - germany $\approx$ polish
+  * bigger + small - big $\approx$ smaller
