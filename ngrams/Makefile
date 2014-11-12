@@ -1,8 +1,8 @@
 .SECONDARY:
 
-.PHONY: tensetest ultimatetest capitaltest spokenintest
+.PHONY: tensetest ultimatetest capitaltest spokenintest sizetest
 
-all: ultimatetest tensetest capitaltest spokenintest
+all: ultimatetest tensetest capitaltest spokenintest sizetest
 
 data/dict:
 	@echo "*** ERROR: you need to run make in the data/ directory ***" 1>&2
@@ -22,3 +22,5 @@ tensetest: test.walk_walked_go_went
 capitaltest: test.berlin_germany_paris_france
 
 spokenintest: test.germany_german_poland_polish
+
+sizetest: test.big_small_bigger_smaller
