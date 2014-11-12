@@ -13,7 +13,7 @@ megaproj.mat: data/dict
 	@exit 1
 
 test.%: megaproj.mat
-	echo $* | perl -pe 's/_/ /g;' | while read a b c d; do echo "$$a $$a $$a\n$$b $$b $$b\n$$c $$c $$c\n$$d $$d $$d\n$$a $$b $$c\n" | python ./neighbors.py $< data/dict 200; done
+	echo $* | perl -pe 's/_/ /g;' | while read a b c d; do echo "$$a $$a $$a\n$$b $$b $$b\n$$c $$c $$c\n$$d $$d $$d\n$$a $$b $$c\n" | python ./neighbors.py $< data/dict; done
 
 ultimatetest: test.king_queen_man_woman
 
