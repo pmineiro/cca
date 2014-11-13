@@ -1,0 +1,7 @@
+How to run the demo
+
+1. make -j2 demoprereq
+  * downloads the data and pre-processes, takes about 15 minutes
+  * uses about 1.6G of disk space
+2. run makeccafilters.m in matlab
+  * takes about 10 minutes and uses about 20G of memory
