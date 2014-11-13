@@ -1,4 +1,7 @@
-How to run the demo
+europarl english-greek data from statmt.org (http://statmt.org/europarl/), 
+originally from Philipp Koehn (http://homepages.inf.ed.ac.uk/pkoehn/publications/europarl-mtsummit05.pdf)
+
+=== How to run the demo ===
 
 1. make -j2 demoprereq
   * downloads the data and pre-processes, takes about 15 minutes
