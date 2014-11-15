@@ -1,9 +1,9 @@
 NUM_THREADS=8
 
 ifeq (,$(wildcard /proc/cpuinfo))
-all: dmsm.mexw64 sparsequad.mexw64
+all: $(patsubst %.cpp,%.mexw64,$(wildcard *.cpp))
 else
-all: dmsm.mexa64 sparsequad.mexa64
+all: $(patsubst %.cpp,%.mexa64,$(wildcard *.cpp))
 endif
 
 clean:

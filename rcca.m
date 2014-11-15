@@ -47,7 +47,9 @@ function retval = rcca(Ltic, W, Rtic, k, varargin)
 %            block sizes save memory but run slower.  default block
 %            size is number of examples.
 
-    if exist('sparsequad','file') == 3 && exist('dmsm','file') == 3
+    if exist('sparsequad','file') == 3 && ...
+       exist('dmsm','file') == 3 && ...
+       exist('sparseweightedsum','file') == 3
       havemex=true;
     else
       havemex=false;
@@ -84,12 +86,22 @@ function retval = rcca(Ltic, W, Rtic, k, varargin)
 
     kp=min([dl;dr;k+p]);
 
-    mL=full(sum(bsxfun(@times,Ltic,W),2)')/sumw;
-    mR=full(sum(bsxfun(@times,Rtic,W),2)')/sumw;
+    if (havemex && issparse(Ltic))
+      mL=sparseweightedsum(Ltic,W,1)/sumw;
+      dLL=sparseweightedsum(Ltic,W,2)-sumw*mL.*mL;
+    else
+      mL=full(sum(bsxfun(@times,Ltic,W),2)')/sumw;
+      dLL=sum(bsxfun(@times,Ltic.*Ltic,W),2)'-sumw*mL.*mL;
+    end  
     
-    dLL=sum(bsxfun(@times,Ltic.*Ltic,W),2)'-sumw*mL.*mL;
-    dRR=sum(bsxfun(@times,Rtic.*Rtic,W),2)'-sumw*mR.*mR;
-
+    if (havemex && issparse(Rtic))
+      mR=sparseweightedsum(Rtic,W,1)/sumw;
+      dRR=sparseweightedsum(Rtic,W,2)-sumw*mR.*mR;
+    else
+      mR=full(sum(bsxfun(@times,Rtic,W),2)')/sumw;
+      dRR=sum(bsxfun(@times,Rtic.*Rtic,W),2)'-sumw*mR.*mR;
+    end
+    
     cl=lambda*sum(dLL)/dl;
     cr=lambda*sum(dRR)/dr;
     
@@ -150,27 +162,27 @@ end
 
 function [lambda,p,tmax,bs,kbs,compress] = parseArgs(n,k,varargin)
   lambda=1;
-  if (nargin == 3 && isfield(varargin{1},'lambda'))
+  if (size(varargin,1) == 1 && isfield(varargin{1},'lambda'))
     lambda=varargin{1}.lambda;
   end   
   p=500;
-  if (nargin == 3 && isfield(varargin{1},'p'))
+  if (size(varargin,1) == 1 && isfield(varargin{1},'p'))
     p=varargin{1}.p;
   end
   tmax=1;
-  if (nargin == 3 && isfield(varargin{1},'tmax'))
+  if (size(varargin,1) == 1 && isfield(varargin{1},'tmax'))
     tmax=varargin{1}.tmax;
   end
   bs=n;
-  if (nargin == 3 && isfield(varargin{1},'bs'))
+  if (size(varargin,1) == 1 && isfield(varargin{1},'bs'))
     bs=varargin{1}.bs;
   end
   kbs=k+p;
-  if (nargin == 3 && isfield(varargin{1},'kbs'))
+  if (size(varargin,1) == 1 && isfield(varargin{1},'kbs'))
     kbs=varargin{1}.kbs;
   end
   compress=false;
-  if (nargin == 3 && isfield(varargin{1},'compress'))
+  if (size(varargin,1) == 1 && isfield(varargin{1},'compress'))
     compress=varargin{1}.compress;
   end
 end

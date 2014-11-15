@@ -47,8 +47,9 @@ function retval = alscca(Ltic, W, Rtic, k, varargin)
 %   opts.pre: ALS preconditioner.  possible values are:
 %        'diag': use diagonal preconditioner (the default).
 %        'identity': use no preconditioner.
-%        @(Z,s): any function handle.  Z is the matrix to precondition.
-%                s is '1' for left view and '2' for right view.
+%        @(Z,d,s): any function handle.  Z is the matrix to precondition.
+%                  d is a (vector) diagonal of the view covariance.
+%                  s is '1' for left view and '2' for right view.
 %   opts.p: oversampling parameter.  default is 10.  larger 
 %           values might improve results, but the default works well.
 %   opts.compress: detect and ignore unused features.  default is false.
@@ -67,7 +68,9 @@ function retval = alscca(Ltic, W, Rtic, k, varargin)
 
     start=clock;
 
-    if exist('sparsequad','file') == 3 && exist('dmsm','file') == 3
+    if exist('sparsequad','file') == 3 && ...
+       exist('dmsm','file') == 3 && ...
+       exist('sparseweightedsum','file') == 3
       havemex=true;
     else
       havemex=false;
@@ -104,11 +107,21 @@ function retval = alscca(Ltic, W, Rtic, k, varargin)
 
     kp=min([dl;dr;k+p]);
 
-    mL=full(sum(bsxfun(@times,Ltic,W),2)')/sumw;
-    mR=full(sum(bsxfun(@times,Rtic,W),2)')/sumw;
+    if (havemex && issparse(Ltic))
+      mL=sparseweightedsum(Ltic,W,1)/sumw;
+      dLL=sparseweightedsum(Ltic,W,2)-sumw*mL.*mL;
+    else
+      mL=full(sum(bsxfun(@times,Ltic,W),2)')/sumw;
+      dLL=sum(bsxfun(@times,Ltic.*Ltic,W),2)'-sumw*mL.*mL;
+    end  
     
-    dLL=sum(bsxfun(@times,Ltic.*Ltic,W),2)'-sumw*mL.*mL;
-    dRR=sum(bsxfun(@times,Rtic.*Rtic,W),2)'-sumw*mR.*mR;
+    if (havemex && issparse(Rtic))
+      mR=sparseweightedsum(Rtic,W,1)/sumw;
+      dRR=sparseweightedsum(Rtic,W,2)-sumw*mR.*mR;
+    else
+      mR=full(sum(bsxfun(@times,Rtic,W),2)')/sumw;
+      dRR=sum(bsxfun(@times,Rtic.*Rtic,W),2)'-sumw*mR.*mR;
+    end
 
     cl=lambda*sum(dLL)/dl;
     cr=lambda*sum(dRR)/dr;
@@ -124,9 +137,13 @@ function retval = alscca(Ltic, W, Rtic, k, varargin)
     [preleft,preright]=parsePreconditioner(dLL,dRR,varargin{:});
     
     [QL,QR]=initialize(Ltic,W,Rtic,LticL,dl,cl,RticR,dr,cr,kp,varargin{:});
-   
+    if (size(varargin,1) == 1 && isfield(varargin{1}, 'project'))
+        QL=varargin{1}.project(QL, 1);
+        QR=varargin{1}.project(QR, 2);
+    end
+    
     for j=1:tmax
-      if (nargin == 5 && isfield(varargin{1},'verbose') && varargin{1}.verbose)
+      if (size(varargin,1) == 1 && isfield(varargin{1},'verbose') && varargin{1}.verbose)
         [flass,~,~]=subspaceopt(RticL,QL,QR,k);
         disp(struct('iteration',(j-1),'sumsigma',sum(flass(1:k)),...
                     'topsigma',flass(1:min(k,8)),'deltat',etime(clock,start)));
@@ -136,13 +153,20 @@ function retval = alscca(Ltic, W, Rtic, k, varargin)
       YL=cheesypcg(@(Z) LticL(Z)+cl*Z, preleft, QL, LticR(QR), innerloop);  
       % 1 data pass
       QL=modgs(YL,@(Z) LticL(Z)*Z'+cl*(Z*Z')); clear YL;
+      if (size(varargin,1) == 1 && isfield(varargin{1}, 'project'))
+        QL=varargin{1}.project(QL, 1);
+      end
+  
       % innerloop data passes
       YR=cheesypcg(@(Z) RticR(Z)+cr*Z, preright, QR, RticL(QL), innerloop);
       % 1 data pass
       QR=modgs(YR,@(Z) RticR(Z)*Z'+cr*(Z*Z'));
+      if (size(varargin,1) == 1 && isfield(varargin{1}, 'project'))
+        QR=varargin{1}.project(QR, 2);
+      end
     end
     [sigma,x,y]=subspaceopt(RticL,QL,QR,k);
-    if (nargin == 5 && isfield(varargin{1},'verbose') && varargin{1}.verbose)
+    if (size(varargin,1) == 1 && isfield(varargin{1},'verbose') && varargin{1}.verbose)
       disp(struct('iteration',tmax,'sumsigma',sum(sigma(1:k)),...
                   'topsigma',sigma(1:min(k,8)),'deltat',etime(clock,start)));
     end
@@ -165,50 +189,50 @@ end
 
 function [lambda,p,tmax,innerloop,bs,kbs,compress] = parseArgs(n,k,varargin)
   lambda=1;
-  if (nargin == 3 && isfield(varargin{1},'lambda'))
+  if (size(varargin,1) == 1 && isfield(varargin{1},'lambda'))
     lambda=varargin{1}.lambda;
   end   
   p=10;
-  if (nargin == 3 && isfield(varargin{1},'p'))
+  if (size(varargin,1) == 1 && isfield(varargin{1},'p'))
     p=varargin{1}.p;
   end
   tmax=10;
-  if (nargin == 3 && isfield(varargin{1},'tmax'))
+  if (size(varargin,1) == 1 && isfield(varargin{1},'tmax'))
     tmax=varargin{1}.tmax;
   end
   innerloop=3;
-  if (nargin == 3 && isfield(varargin{1},'innerloop'))
+  if (size(varargin,1) == 1 && isfield(varargin{1},'innerloop'))
     innerloop=varargin{1}.innerloop;
   end
   bs=n;
-  if (nargin == 3 && isfield(varargin{1},'bs'))
+  if (size(varargin,1) == 1 && isfield(varargin{1},'bs'))
     bs=varargin{1}.bs;
   end
   kbs=k+p;
-  if (nargin == 3 && isfield(varargin{1},'kbs'))
+  if (size(varargin,1) == 1 && isfield(varargin{1},'kbs'))
     kbs=varargin{1}.kbs;
   end
   compress=false;
-  if (nargin == 3 && isfield(varargin{1},'compress'))
+  if (size(varargin,1) == 1 && isfield(varargin{1},'compress'))
     compress=varargin{1}.compress;
   end
 end
 
 function [preleft,preright] = parsePreconditioner(dLL,dRR,varargin)
-  if (nargin == 2 || ~isfield(varargin{1}, 'pre') || strcmp(varargin{1}.pre, 'diag'))
+  if (size(varargin,1) == 0 || ~isfield(varargin{1}, 'pre') || strcmp(varargin{1}.pre, 'diag'))
     preleft=@(z) bsxfun(@rdivide,z,dLL);
     preright=@(z) bsxfun(@rdivide,z,dRR);
   elseif (strcmp(varargin{1}.pre, 'identity'))
     preleft=@(z) z;
     preright=@(z) z;
   else
-    preleft=@(z) varargin{1}.pre(z, 1);
-    preright=@(z) varargin{1}.pre(z, 2);
+    preleft=@(z) varargin{1}.pre(z, dLL, 1);
+    preright=@(z) varargin{1}.pre(z, dRR, 2);
   end  
 end
   
 function [QL,QR] = initialize(Ltic,W,Rtic,LticL,dl,cl,RticR,dr,cr,kp,varargin)
-  if (nargin == 7 || ~isfield(varargin{1}, 'init') || ...
+  if (size(varargin,1) == 0 || ~isfield(varargin{1}, 'init') || ...
       strcmp(varargin{1}.init, 'randn'))
     QL=modgs(randn(kp,dl),@(Z) LticL(Z)*Z'+cl*(Z*Z'));
     QR=modgs(randn(kp,dr),@(Z) RticR(Z)*Z'+cr*(Z*Z'));
@@ -292,18 +316,18 @@ function Y = cheesypcg(Afunc,preAfunc,Y,b,iter)
   z=preAfunc(r);
   p=z;
   rho=diag(r*z');
-  initsumrr=sum(sum(r.*r));
+  initsumzz=sum(sum(z.*z));
   
   for ii=1:iter
     Ap=Afunc(p);
     alpha=rho./diag(p*Ap');
     Y=Y+bsxfun(@times,p,alpha);
     r=r-bsxfun(@times,Ap,alpha);
-    newsumrr=sum(sum(r.*r));     
-    if (newsumrr<tol*initsumrr)
+    z=preAfunc(r);
+    newsumzz=sum(sum(z.*z));     
+    if (newsumzz<tol*initsumzz)
         break;
     end
-    z=preAfunc(r);
     rho1=rho;
     rho=diag(r*z');
     beta=rho./rho1;

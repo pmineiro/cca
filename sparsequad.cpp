@@ -48,37 +48,32 @@ sparsequad (const mxArray* prhs[],
 
   double* ZticR = (double*) malloc (k * sizeof (double));
 
-  for (size_t n = start; n < end; ++n)
-    {
-      double wi = W[n];
+  for (size_t n = start; n < end; ++n) {
+    double wi = W[n];
 
-      memset (ZticR, 0, k * sizeof (double));
+    memset (ZticR, 0, k * sizeof (double));
 
-      mwIndex Rticstop = Rticjc[n + 1];
-      for (mwIndex j = Rticjc[n]; j < Rticstop; ++j)
-        {
-          double *Zticdr = Ztic + Rticir[j] * k;
-          double Rs = wi * Rtics[j];
+    mwIndex Rticstop = Rticjc[n + 1];
+    for (mwIndex j = Rticjc[n]; j < Rticstop; ++j) {
+      double *Zticdr = Ztic + Rticir[j] * k;
+      double Rs = wi * Rtics[j];
 
-          for (size_t i = 0; i < k; ++i)
-            {
-              ZticR[i] += Rs * Zticdr[i];
-            }
-        }
-
-      mwIndex Lticstop = Lticjc[n + 1];
-
-      for (mwIndex j = Lticjc[n]; j < Lticstop; ++j)
-        {
-          double *Yout = Y + Lticir[j] * k;
-          double Ls = Ltics[j];
-
-          for (size_t i = 0; i < k; ++i)
-            {
-              Yout[i] += Ls * ZticR[i];
-            }
-        }
+      for (size_t i = 0; i < k; ++i) {
+        ZticR[i] += Rs * Zticdr[i];
+      }
     }
+
+    mwIndex Lticstop = Lticjc[n + 1];
+
+    for (mwIndex j = Lticjc[n]; j < Lticstop; ++j) {
+      double *Yout = Y + Lticir[j] * k;
+      double Ls = Ltics[j];
+
+      for (size_t i = 0; i < k; ++i) {
+        Yout[i] += Ls * ZticR[i];
+      }
+    }
+  }
 
   free (ZticR);
 }
