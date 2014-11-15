@@ -5,5 +5,7 @@
        (multicore dense-sparse matrix multiply)
   * sparsequad.cpp: compile this MEX to make the previous functions go faster
        (multicore sparse quadratic form)
+  * sparseweightedsum.cpp: compile this MEX to make the previous functions go faster
+       (multicore sparse weighted sum over columns)
   * europarl/: europarl multilingual word embedding demo
   * ngrams/: google n-grams word embedding demo
