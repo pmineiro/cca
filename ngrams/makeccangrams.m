@@ -29,9 +29,9 @@ fprintf('finished. ');
 toc
 
 tic
-fprintf('building embedding using ALS cca (takes about 90 minutes)...\n');
+fprintf('building embedding using ALS cca (takes about 60 minutes)...\n');
 cca=alscca(left,sqrt(weight),right,200,...
-           struct('verbose',true,'innerloop',6));
+           struct('verbose',true,'tmax',5,'p',100,'innerloop',6));
 fprintf('finished. ');
 toc
 tic
