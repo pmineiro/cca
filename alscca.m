@@ -51,7 +51,7 @@ function retval = alscca(Ltic, W, Rtic, k, varargin)
 %                  d is a (vector) diagonal of the view covariance.
 %                  s is '1' for left view and '2' for right view.
 %   opts.p: oversampling parameter.  default is 10.  larger 
-%           values might improve results, but the default works well.
+%           values might improve results, but will increase memory usage.
 %   opts.compress: detect and ignore unused features.  default is false.
 %                  when using hashing to generate features, this can save
 %                  substantial memory.
