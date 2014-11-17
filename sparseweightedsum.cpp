@@ -110,7 +110,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
   size_t quot = n/NUM_THREADS;
 
   for (size_t i = 0; i + 1 < NUM_THREADS; ++i) {
-    s[i] = (double*) calloc(dl, sizeof(double));
+    s[i] = (double*) mxCalloc(dl, sizeof(double));
+  }
+
+  for (size_t i = 0; i + 1 < NUM_THREADS; ++i) {
     t[i] = std::thread(sparseweightedsum,
                        prhs,
                        s[i],
@@ -128,7 +131,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
 
     t[i].join ();
     daxpy (&dlmega, &oned, s[i], &one, Y, &one);
-    free (s[i]);
+    mxFree (s[i]);
   }
 
   return;

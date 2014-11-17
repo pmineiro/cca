@@ -30,6 +30,7 @@
 static void
 sparsequad (const mxArray* prhs[],
             double*        Y,
+            double*        ZticR,
             size_t         start,
             size_t         end)
 {
@@ -45,8 +46,6 @@ sparsequad (const mxArray* prhs[],
 
   size_t k = mxGetM(ZTIC_MATRIX_PARAMETER_IN);
   double* Ztic = mxGetPr(ZTIC_MATRIX_PARAMETER_IN);
-
-  double* ZticR = (double*) malloc (k * sizeof (double));
 
   for (size_t n = start; n < end; ++n) {
     double wi = W[n];
@@ -74,8 +73,6 @@ sparsequad (const mxArray* prhs[],
       }
     }
   }
-
-  free (ZticR);
 }
 
 static int first = 1;
@@ -131,16 +128,24 @@ void mexFunction( int nlhs, mxArray *plhs[],
   size_t quot = n/NUM_THREADS;
 
   for (size_t i = 0; i + 1 < NUM_THREADS; ++i) {
-    s[i] = (double*) calloc(dl * k, sizeof(double));
+    s[i] = (double*) mxCalloc((dl + 1) * k, sizeof(double));
+  }
+
+  double* ZticR = (double*) mxCalloc (k, sizeof (double));
+
+  for (size_t i = 0; i + 1 < NUM_THREADS; ++i) {
     t[i] = std::thread(sparsequad,
                        prhs,
+                       s[i] + k,
                        s[i],
                        i * quot,
                        (i + 1) * quot);
 
   }
 
-  sparsequad (prhs, Y, (NUM_THREADS - 1) * quot, n);
+  sparsequad (prhs, Y, ZticR, (NUM_THREADS - 1) * quot, n);
+
+  mxFree (ZticR);
 
   for (int i = 0; i + 1 < NUM_THREADS; ++i) {
     double oned = 1.0;
@@ -148,8 +153,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
     ptrdiff_t dltimesk = dl * k;
 
     t[i].join ();
-    daxpy (&dltimesk, &oned, s[i], &one, Y, &one);
-    free (s[i]);
+    daxpy (&dltimesk, &oned, s[i] + k, &one, Y, &one);
+    mxFree(s[i]);
   }
 
   return;
