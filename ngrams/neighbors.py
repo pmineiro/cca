@@ -1,5 +1,5 @@
 from sys import argv, stdin
-import numpy as np, h5py
+import numpy as np, h5py, heapq
 
 f=h5py.File(argv[1],'r');
 data=f.get('megaproj');
@@ -26,7 +26,9 @@ def main():
                 break
         else: #no break
             query=data[:,eigendict[w3]]+data[:,eigendict[w2]]-data[:,eigendict[w1]];
-            scores=sorted(zip(query.T.dot(data),range(len(eigendict))),reverse=True);
+            rawscores=zip(query.T.dot(data),range(len(eigendict)))
+            scores=heapq.nlargest(5, rawscores)
+
             if w1 == w2 == w3:
                 print 'nearest neighbors of %s are ...'%(w1)
             else:
