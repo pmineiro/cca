@@ -53,7 +53,7 @@ function retval = rcca(Ltic, W, Rtic, k, varargin)
       havemex=true;
     else
       havemex=false;
-      warning('alscca:nomex', 'MEX acceleration not available, have you compiled the mex?');
+      warning('rcca:nomex', 'MEX acceleration not available, have you compiled the mex?');
     end
 
     [dl,nl]=size(Ltic);
