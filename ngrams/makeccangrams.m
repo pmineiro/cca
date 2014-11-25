@@ -28,18 +28,27 @@ clear weightraw;
 fprintf('finished. ');
 toc
 
+sample=1e-4;
+mr=sparseweightedsum(right,weight,1)/sum(weight);
+megar=dmsm(mr,right);
+ultraw=weight.*(min(megar,sample)./megar);
+clear mr megar;
+
+randn('seed',8675309);
+rand('seed',90210);
+
 tic
-fprintf('building embedding using ALS cca (takes about 60 minutes)...\n');
-cca=alscca(left,sqrt(weight),right,200,...
-           struct('verbose',true,'tmax',5,'p',100,'innerloop',6));
+fprintf('building embedding using ALS cca (takes about 45 minutes)...\n');
+cca=alscca(left,sqrt(ultraw),right,300,...
+           struct('verbose',true,'tmax',2,'p',200,'innerloop',6,'kbs',100));
 fprintf('finished. ');
 toc
 tic
 fprintf('saving projection to megaproj.mat ...\n');
 [d,~]=size(right);
 megaproj=bsxfun(@times,cca.projecty(speye(d)),sqrt(cca.sigma));
-megaprojnorm=arrayfun(@(z) norm(megaproj(z,:)), 1:size(megaproj,1));
-megaproj=single(bsxfun(@rdivide,megaproj,megaprojnorm'));
+megaprojnorm=sum(megaproj.*megaproj,2);
+megaproj=single(bsxfun(@rdivide,megaproj,sqrt(megaprojnorm)));
 save('megaproj.mat','-v7.3','megaproj');
 fprintf('finished. ');
 toc

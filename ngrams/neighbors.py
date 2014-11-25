@@ -1,6 +1,8 @@
 from sys import argv, stdin
 import numpy as np, h5py, heapq
 
+epsilon=0.001
+
 f=h5py.File(argv[1],'r');
 data=f.get('megaproj');
 data=np.array(data);
@@ -25,9 +27,15 @@ def main():
                 print "%s not found"%wi
                 break
         else: #no break
-            query=data[:,eigendict[w3]]+data[:,eigendict[w2]]-data[:,eigendict[w1]];
-            rawscores=zip(query.T.dot(data),range(len(eigendict)))
-            scores=heapq.nlargest(5, rawscores)
+            #query=data[:,eigendict[w3]]+data[:,eigendict[w2]]-data[:,eigendict[w1]];
+            #rawscores=zip(query.T.dot(data),range(len(eigendict)))
+            #scores=heapq.nlargest(5, rawscores)
+
+            rawscoresone=data[:,eigendict[w3]].T.dot(data);
+            rawscorestwo=data[:,eigendict[w2]].T.dot(data);
+            rawscoresthree=data[:,eigendict[w1]].T.dot(data);
+            cos3mul=zip(np.log(0.5+0.5*rawscoresone)+np.log(0.5+0.5*rawscorestwo)-np.log(epsilon+0.5+0.5*rawscoresthree),range(len(eigendict)))
+            scores=heapq.nlargest(5,cos3mul)
 
             if w1 == w2 == w3:
                 print 'nearest neighbors of %s are ...'%(w1)

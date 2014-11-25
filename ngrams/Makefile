@@ -21,6 +21,6 @@ tensetest: test.walk_walked_go_went
 
 capitaltest: test.berlin_germany_paris_france
 
-spokenintest: test.germany_german_poland_polish
+spokenintest: test.germany_german_italy_italian
 
 sizetest: test.big_small_bigger_smaller

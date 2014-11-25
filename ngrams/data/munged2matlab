@@ -31,11 +31,18 @@ while (defined ($_ = <>))
   my @rest = split /\t/, $_;
   my $cnt = pop @rest;
   my $m = splice @rest, 2, 1;
-  foreach my $d (map { dict_lookup("$_:$rest[$_]",\%dict_l) } (0 .. $#rest))
-  {
-    print LEFT "$. $d 1\n";
-  }
-        
+
+# before/after unigrams
+
+  foreach my $pos (0 .. $#rest)
+    {
+      my $before = (2 * $pos < $#rest) ? 1 : 0;
+
+      my $d = dict_lookup(":$before:$rest[$pos]",\%dict_l);
+
+      print LEFT "$. $d 1\n";
+    }
+
   print RIGHT "$. @{[dict_lookup($m,\%dict)]} 1\n";
   print WEIGHT "1 $. $cnt\n";
 }
